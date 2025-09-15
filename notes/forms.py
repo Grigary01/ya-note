@@ -27,3 +27,4 @@ class NoteForm(forms.ModelForm):
         ).exclude(id=self.instance.pk).exists():
             raise ValidationError(slug + WARNING)
         return slug
+    
