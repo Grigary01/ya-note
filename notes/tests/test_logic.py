@@ -1,3 +1,4 @@
+# type: ignore
 from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
@@ -48,8 +49,8 @@ class TestNoteCreation(TestCase):
         self.form_data['slug'] = self.NOTES_SLUG
         response = self.auth_client.post(self.url, data=self.form_data)
         self.assertIn('form', response.context)
-        self.assertFormError(response, 'form', 'slug', 
-                             errors=self.NOTES_SLUG + WARNING)
+        self.assertFormError(
+            response.context['form'], 'slug', self.NOTES_SLUG + WARNING)
         self.assertEqual(Note.objects.count(), 1)
 
     def test_empty_slug(self):
@@ -62,8 +63,10 @@ class TestNoteCreation(TestCase):
         self.assertEqual(new_note.slug, expected_slug)
 
 
-
 class TestNoteEditDelete(TestCase):
+    NOTES_TITLE = 'Заголовок записки'
+    NOTES_TEXT = 'Текст записки'
+    NOTES_SLUG = 'address-for-page-with-note'
 
     @classmethod
     def setUpTestData(cls):
@@ -74,7 +77,9 @@ class TestNoteEditDelete(TestCase):
             slug='address-for-page-with-note',
             author=cls.author
         )
-        note_url = reverse('notes:detail', args=(cls.note.slug,))
+        cls.form_data = {'title': cls.NOTES_TITLE,
+                         'text': cls.NOTES_TEXT,
+                         'slug': cls.NOTES_SLUG}
         cls.url_to_notes = '/done/'
         cls.author_client = Client()
         cls.author_client.force_login(cls.author)
@@ -84,6 +89,22 @@ class TestNoteEditDelete(TestCase):
         cls.edit_url = reverse('notes:edit', args=(cls.note.slug,))
         cls.delete_url = reverse('notes:delete', args=(cls.note.slug,))
 
+    def test_author_can_edit_note(self):
+        response = self.author_client.post(self.edit_url, self.form_data)
+        self.assertRedirects(response, self.url_to_notes)
+        self.note.refresh_from_db()
+        self.assertEqual(self.note.title, self.form_data['title'])
+        self.assertEqual(self.note.text, self.form_data['text'])
+        self.assertEqual(self.note.slug, self.form_data['slug'])
+
+    def test_other_user_cant_edit_note(self):
+        response = self.reader_client.post(self.edit_url, self.form_data)
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        note_from_db = Note.objects.get(id=self.note.id)
+        self.assertEqual(self.note.title, note_from_db.title)
+        self.assertEqual(self.note.text, note_from_db.text)
+        self.assertEqual(self.note.slug, note_from_db.slug)
+
     def test_author_can_delete_note(self):
         response = self.author_client.delete(self.delete_url)
         self.assertRedirects(response, self.url_to_notes)
@@ -91,7 +112,7 @@ class TestNoteEditDelete(TestCase):
         notes_count = Note.objects.count()
         self.assertEqual(notes_count, 0)
 
-    def test_user_cant_delete_comment_of_another_user(self):
+    def test_user_cant_delete_note(self):
         response = self.reader_client.delete(self.delete_url)
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         comments_count = Note.objects.count()

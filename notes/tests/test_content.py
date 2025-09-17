@@ -48,4 +48,3 @@ class TestHomePage(TestCase):
                 response = self.client.get(url)
                 self.assertIn('form', response.context)
                 self.assertIsInstance(response.context['form'], NoteForm)
-

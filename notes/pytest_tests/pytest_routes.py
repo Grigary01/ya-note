@@ -10,7 +10,6 @@ from pytest_django.asserts import assertRedirects
     'name',
     ('notes:home', 'users:login', 'users:signup')
 )
-# Указываем в фикстурах встроенный клиент.
 def test_home_availability_for_anonymous_user(client, name):
     url = reverse(name)
     response = client.get(url)
@@ -44,6 +43,7 @@ def test_pages_availability_for_different_users(
     url = reverse(name, args=(note.slug,))
     response = parametrized_client.get(url)
     assert response.status_code == expected_status
+
 
 @pytest.mark.parametrize(
     'name, args',

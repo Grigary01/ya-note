@@ -3,8 +3,6 @@ import pytest
 from django.test.client import Client
 from notes.models import Note
 
-# Фикстура, которая будет возвращать клиент на основе параметра
-
 
 @pytest.fixture
 def client_fixture(request):
@@ -18,7 +16,7 @@ def args(request):
     """Фикстура, возвращающая аргументы based on параметра"""
     args_value = request.param
     if args_value == 'slug_for_args':
-        # Получаем фикстуру note и возвращаем её slug
+
         note = request.getfixturevalue('note')
         return [note.slug]
     return args_value
@@ -35,17 +33,16 @@ def not_author(django_user_model):
 
 
 @pytest.fixture
-def author_client(author):  # Вызываем фикстуру автора.
-    # Создаём новый экземпляр клиента, чтобы не менять глобальный.
+def author_client(author):
     client = Client()
-    client.force_login(author)  # Логиним автора в клиенте.
+    client.force_login(author)
     return client
 
 
 @pytest.fixture
 def not_author_client(not_author):
     client = Client()
-    client.force_login(not_author)  # Логиним обычного пользователя в клиенте.
+    client.force_login(not_author)
     return client
 
 
