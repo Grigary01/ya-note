@@ -1,4 +1,4 @@
-# type: ignore
+    # type: ignore
 from pytest_django.asserts import assertRedirects, assertFormError
 import pytest
 from django.urls import reverse

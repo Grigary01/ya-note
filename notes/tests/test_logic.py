@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from notes.models import Note
 from django.urls import reverse
+from notes.forms import WARNING
+from pytils.translit import slugify
 
 User = get_user_model()
 
@@ -35,6 +37,30 @@ class TestNoteCreation(TestCase):
         self.assertEqual(note.title, self.NOTES_TITLE)
         self.assertEqual(note.text, self.NOTES_TEXT)
         self.assertEqual(note.slug, self.NOTES_SLUG)
+
+    def test_not_unique_slug(self):
+        Note.objects.create(
+            title='Первая заметка',
+            text='Текст первой заметки',
+            slug=self.NOTES_SLUG,
+            author=self.author
+        )
+        self.form_data['slug'] = self.NOTES_SLUG
+        response = self.auth_client.post(self.url, data=self.form_data)
+        self.assertIn('form', response.context)
+        self.assertFormError(response, 'form', 'slug', 
+                             errors=self.NOTES_SLUG + WARNING)
+        self.assertEqual(Note.objects.count(), 1)
+
+    def test_empty_slug(self):
+        self.form_data.pop('slug')
+        response = self.auth_client.post(self.url, data=self.form_data)
+        self.assertRedirects(response, reverse('notes:success'))
+        self.assertEqual(Note.objects.count(), 1)
+        new_note = Note.objects.get()
+        expected_slug = slugify(self.form_data['title'])
+        self.assertEqual(new_note.slug, expected_slug)
+
 
 
 class TestNoteEditDelete(TestCase):
